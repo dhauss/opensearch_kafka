@@ -19,8 +19,11 @@ public class BonsaiConfig {
             FileReader config_fr = new FileReader(config_file);
             BufferedReader config_br = new BufferedReader((config_fr));
             StringBuffer config_sb = new StringBuffer();
+
             // file consists of single line- connection URI
-            this.setConnString(config_br.readLine());
+            this.setConnString(config_br.readLine().toString());
+
+            config_fr.close();
         } catch(IOException e){
             e.printStackTrace();
         }
