@@ -57,8 +57,8 @@ public class OpenSearchConsumer {
         // Need to close the client so the thread will exit
         try {
             rhlc.close();
-        } catch (Exception ex) {
-
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }
