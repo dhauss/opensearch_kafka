@@ -17,7 +17,8 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import java.net.URI;
 
 public class OpenSearchConsumer {
-    public static void main(String[] args) {
+
+    public static RestHighLevelClient createOpenSearchClient(){
         BonsaiConfig bc = new BonsaiConfig("src/main/resources/bonsai_config.txt");
         String connString = bc.getConnString();
 
@@ -33,6 +34,11 @@ public class OpenSearchConsumer {
                                 httpAsyncClientBuilder -> httpAsyncClientBuilder.setDefaultCredentialsProvider(cp)
                                         .setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy())));
 
+        return rhlc;
+    }
+
+    public static void main(String[] args) {
+        RestHighLevelClient rhlc = createOpenSearchClient();
         // https://www.elastic.co/guide/en/elasticsearch/client/java-rest/master/java-rest-high-search.html
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -54,5 +60,6 @@ public class OpenSearchConsumer {
         } catch (Exception ex) {
 
         }
+
     }
 }
