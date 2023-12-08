@@ -11,9 +11,14 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.indices.CreateIndexRequest;
+import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 
 public class OpenSearchConsumer {
@@ -37,29 +42,25 @@ public class OpenSearchConsumer {
         return rhlc;
     }
 
-    public static void main(String[] args) {
-        RestHighLevelClient rhlc = createOpenSearchClient();
-        // https://www.elastic.co/guide/en/elasticsearch/client/java-rest/master/java-rest-high-search.html
-        SearchRequest searchRequest = new SearchRequest();
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-        searchRequest.source(searchSourceBuilder);
+    public static void main(String[] args) throws IOException {
+        //Create open search client
+        RestHighLevelClient openSearchClient = createOpenSearchClient();
 
-        try {
-            SearchResponse resp  = rhlc.search(searchRequest, RequestOptions.DEFAULT);
-            // Show that the query worked
-            System.out.println(resp.toString());
-        } catch (Exception ex) {
-            // Log the exception
-            System.out.println(ex.toString());
+        //Create logger
+        Logger log = LoggerFactory.getLogger(OpenSearchConsumer.class.getSimpleName());
+
+        //Create index if does not exist. Try block will close openSearch client on success/fail
+        try(openSearchClient) {
+            String wikimediaIndex = "wikimedia";
+            Boolean indexExists = openSearchClient.indices()
+                    .exists( new GetIndexRequest(wikimediaIndex), RequestOptions.DEFAULT);
+            if(!indexExists) {
+                CreateIndexRequest createIndexRequest = new CreateIndexRequest(wikimediaIndex);
+                openSearchClient.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+                log.info("Wikimedia index created");
+            } else {
+                log.info("Wikimedia index already exists");
+            }
         }
-
-        // Need to close the client so the thread will exit
-        try {
-            rhlc.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
     }
 }
