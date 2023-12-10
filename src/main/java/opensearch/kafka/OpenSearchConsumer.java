@@ -11,6 +11,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.RequestOptions;
@@ -133,6 +135,7 @@ public class OpenSearchConsumer {
                     log.info("Received " + recordCount + " record(s)");
 
                     // upload data to openSearch
+                    BulkRequest bulkRequest = new BulkRequest();
                     for(ConsumerRecord record: records){
                         try {
                             // create ID based on wikimedia record for idempotent insertions
@@ -142,14 +145,18 @@ public class OpenSearchConsumer {
                             IndexRequest indexRequest = new IndexRequest("wikimedia")
                                     .source(record.value(), XContentType.JSON)
                                     .id(id);
-                            // upload record and save response
-                            IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
-                            // log uploaded record ID
-                            log.info(response.getId());
+
+                            // add to bulk request
+                            bulkRequest.add(indexRequest);
                         } catch(Exception e){
                             // some records have mapping depth > 20 which openSearch does not allow, simply ignore them and process next message
                             log.info("JSON record mapping depth > 20");
                         }
+                    }
+
+                    if(bulkRequest.numberOfActions() > 0) {
+                        BulkResponse bulkResponse = openSearchClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+                        log.info(bulkResponse.getItems().length + " record(s) added.");
                     }
                 }
             } catch(WakeupException we) {
@@ -157,8 +164,9 @@ public class OpenSearchConsumer {
             } catch(Exception e){
                 log.error("Unexpected consumer error: ", e);
             } finally {
-                //close consumer and commit offsets
+                //close client/consumer and commit offsets
                 openSearchConsumer.close();
+                openSearchClient.close();
             }
         }
     }
